@@ -2,6 +2,15 @@ name: Android Debug Release
 
 on:
   workflow_call:
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: true
+      ANDROID_KEYSTORE_PASSWORD:
+        required: true
+      ANDROID_KEY_ALIAS:
+        required: true
+      ANDROID_KEY_PASSWORD:
+        required: true
 
 jobs:
   build:
@@ -26,7 +35,16 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x gradlew
 
+      - name: Restore signing keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > signing.keystore
+
       - name: Build debug APK
+          env:
+          STORE_FILE: ${{ github.workspace }}/signing.keystore
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew assembleDebug
 
       - name: Create GitHub Release
