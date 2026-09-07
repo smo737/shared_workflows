@@ -1,0 +1,56 @@
+name: Android Release
+
+on:
+  workflow_call:
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out app repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Restore signing key
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > signing.keystore
+
+      - name: Build unsigned release APK
+        run: ./gradlew assembleRelease
+
+      - name: Find Android SDK build tools
+        run: |
+          echo "BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)" >> $GITHUB_ENV
+
+      - name: Sign APK
+        run: |
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks signing.keystore \
+            --ks-key-alias androiddebugkey \
+            --ks-pass pass:android \
+            --key-pass pass:android \
+            --out app-release.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app-release.apk
