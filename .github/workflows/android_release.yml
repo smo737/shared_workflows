@@ -47,10 +47,10 @@ jobs:
             --ks-key-alias androiddebugkey \
             --ks-pass pass:android \
             --key-pass pass:android \
-            --out app-release.apk \
+            --out "${{ inputs.apk_name }}" \
             app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app-release.apk
+          files: ${{ inputs_apk_name }}
